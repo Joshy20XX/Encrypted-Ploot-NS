@@ -1,5 +1,5 @@
 /*
-    Club Ploot: A chat room for your favorite ploot.
+    Encrypted Ploot: A chat room for your favorite ploot.
     The Network Security Version.
     Authors: Nicholas Melchiore, Edgar Zayas, Josh Ottey
 */
@@ -27,7 +27,7 @@ int main() {
     
     //Declaring ploot
     Ploot ploot;
-    ploot.parsePloot(ploot.ploot_dict, ploot_stream); //Parse the text file
+    ploot.parsePloot(ploot_stream); //Parse the text file
     ploot_stream.close(); //Close the file handling for now
     
     ploot.info(); //Print the ploot's stats from the class file

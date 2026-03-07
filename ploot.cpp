@@ -32,6 +32,7 @@ Ploot::Ploot() {
     sound_panic = "";
     sound_rare = "";
     sound_thrown = "";
+    std::map<std::string, std::string> ploot_dict; 
 }
 
 std::string Ploot::getName() {
@@ -236,7 +237,7 @@ void Ploot::info() {
 }
 
 //We want to create the ploot file on load but for now im just parsing stuff from the text file.
-void Ploot::parsePloot(std::map<std::string,std::string>& ploot_dict, std::ifstream& ploot_stream) {
+void Ploot::parsePloot(std::ifstream& ploot_stream) {
     //Open a file stream for the ploot file
 
     //Containers for our values and for looping for each line

@@ -9,8 +9,6 @@
 #include <map>
 
 class Ploot {
-    public:
-        std::map<std::string, std::string> ploot_dict; 
     private:
         int normal;
         int poison;
@@ -38,6 +36,7 @@ class Ploot {
         std::string sound_panic;
         std::string sound_rare;
         std::string sound_thrown;
+        std::map<std::string, std::string> ploot_dict; 
 
     //Ploot Constructor with default values
     public: 
@@ -45,7 +44,7 @@ class Ploot {
         void info(); //Print the ploot info
 
         //Pass in our ploot text file and our dictionary
-        void parsePloot(std::map<std::string,std::string>& ploot_dict, std::ifstream& ploot_stream);
+        void parsePloot(std::ifstream& ploot_stream);
 
         //Get and set our ploot stats
         std::string getName(); 
