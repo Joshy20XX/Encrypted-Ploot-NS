@@ -10,47 +10,26 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include "ploot.h"
 using namespace std;
 
-//A hash map for the ploot attributes (for now)
-map<string, string> ploot;
-
+//Main code (work in progress)
 int main() {
-    //A dummy ploot file to create
-    ifstream CP_DUMMY("dummy.ploot");
+
+    //C++ file open handling. You can also use fopen() too.
+    ifstream ploot_stream("Melissa.ploot");
     
-    if (!CP_DUMMY.is_open()) {
-        cerr << "Error: couldn't open file." << std::endl;
+    //Return error if something bad happens to the file
+    if (!ploot_stream.is_open()) {
+        std::cerr << "Error opening file." << std::endl;
         return 1;
-    } 
-
-    //Containers for our values and for looping for each line
-    string variable, value;
-    string line;
-
-    if(CP_DUMMY.is_open()) {
-        while (getline(CP_DUMMY, line)) {
-            //Parsing stringstream into pairs for data flow
-            std::pair<string, string> sub;
-
-            //Create a stringstream and for each line, separate the ploot parameter and its value
-            stringstream pss(line);
-            getline(pss, variable, '=');
-            sub.first = variable;
-            getline(pss, value);
-            sub.second = value;
-
-            //Send that data over to a ploot hashmap (a dictionary)
-            ploot[sub.first] = sub.second;
-        }
     }
-    CP_DUMMY.close();
-
-    //Print the contents of the ploot dictionary
-    cout << "Ploot's stats: " << endl;
-    for (auto it = ploot.begin(); it != ploot.end(); it++) {
-        cout << it->first << " = " << it->second << endl;
-    }
-    return 0;
+    
+    //Declaring ploot
+    Ploot ploot;
+    ploot.parsePloot(ploot.ploot_dict, ploot_stream); //Parse the text file
+    ploot_stream.close(); //Close the file handling for now
+    
+    ploot.info(); //Print the ploot's stats from the class file
 
 }
