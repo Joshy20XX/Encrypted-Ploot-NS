@@ -4,13 +4,13 @@
 #Compiler and flags
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -g
-RM = del *.o cp_main.exe
+RM = del *.o ep_main.exe
 
 #Target executable
-TARGET = cp_main
+TARGET = ep_main
 
 #Object files
-OBJS = cp_main.o ploot.o
+OBJS = ep_main.o ploot.o
 
 all: $(TARGET)
 
@@ -22,7 +22,7 @@ $(TARGET): $(OBJS)
 
 #Rules for main file
 cp_main.o: cp_main.cpp ploot.h
-	$(CXX) $(CXXFLAGS) -c cp_main.cpp -o cp_main.o
+	$(CXX) $(CXXFLAGS) -c ep_main.cpp -o ep_main.o
 
 #Rules for ploot source file
 ploot.o: ploot.cpp ploot.h
