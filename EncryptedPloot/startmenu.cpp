@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QCoreApplication>
+#include <QTextStream>
 
 //PERMUATATION TABLES
 
@@ -159,15 +160,45 @@ void StartMenu::on_pushButton_clicked()
     if (!ploot_file.isEmpty()) {
         QFile file(ploot_file);
 
+        QStringList lines;
+
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QTextStream in(&file);
             while (!in.atEnd()) {
                 QString currentLine = in.readLine();
                 qDebug() << currentLine;
+
+                //Append the line to the new encrypted ploot file
+                lines.append(currentLine);
             }
         }
         file.close();
+
+        //Create a new encrypted ploot file
+        QFile ploot_out(QFileInfo(file).fileName());
+
+        if (ploot_out.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream out(&ploot_out);
+
+            //Separate each line
+            for (const QString &line : lines) {
+                out << line << "\n";
+            }
+
+
+            //Hide it's creation time
+            QDateTime dt(QDate(2000, 1, 1), QTime(0, 0));
+
+            ploot_out.setFileTime(dt, QFileDevice::FileModificationTime);
+            ploot_out.setFileTime(dt, QFileDevice::FileBirthTime);
+            ploot_out.setFileTime(dt, QFileDevice::FileAccessTime);
+
+            ploot_out.close();
+
+        }
     }
+
+
 }
 
 
