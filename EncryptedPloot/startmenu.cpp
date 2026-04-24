@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QCoreApplication>
 #include <QTextStream>
+#include "base64.hpp"  //Included Base64 library from tobiasbaker: https://github.com/tobiaslocker/base64
 
 //PERMUATATION TABLES
 
@@ -166,10 +167,17 @@ void StartMenu::on_pushButton_clicked()
             QTextStream in(&file);
             while (!in.atEnd()) {
                 QString currentLine = in.readLine();
-                qDebug() << currentLine;
+
+                //Convert the line to regular string for conversion
+                auto converted_line = currentLine.toStdString();
+                auto encoded = base64::to_base64(converted_line);
+
+                //Convert the string back to a QString
+                QString encoded_line = QString::fromStdString(encoded);
+                //qDebug() << "Encoded line: " << encoded_line;
 
                 //Append the line to the new encrypted ploot file
-                lines.append(currentLine);
+                lines.append(encoded_line);
             }
         }
         file.close();
@@ -197,8 +205,6 @@ void StartMenu::on_pushButton_clicked()
 
         }
     }
-
-
 }
 
 
