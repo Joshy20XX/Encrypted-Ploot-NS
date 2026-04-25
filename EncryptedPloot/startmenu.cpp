@@ -4,11 +4,12 @@
 #include <QFile>
 #include <QCoreApplication>
 #include <QTextStream>
+#include <QString>
 #include "base64.hpp"  //Included Base64 library from tobiasbaker: https://github.com/tobiaslocker/base64
 
 //PERMUATATION TABLES
 
-//Inital Permuation Table
+//Initial Permuation Table
 static QVector<int> initial_perm = {58, 50, 42, 34, 26, 18, 10, 2,
                              60, 52, 44, 36, 28, 20, 12, 4,
                              62, 54, 46, 38, 30, 22, 14, 6,
@@ -203,6 +204,60 @@ void StartMenu::on_pushButton_clicked()
 
             ploot_out.close();
 
+        }
+        //Open the ploot file again and read each line
+        if (ploot_out.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&ploot_out);
+
+            //Declare two pointers for string reading
+            int start;
+            int end;
+            QString chunk;
+            bool fix_chunk = false;
+
+            while (!in.atEnd()) {
+                start = 0;
+                end = 8;
+
+                QString line = in.readLine();
+                int str_len = line.length(); //The line of string's length
+
+                while (start <= end) {
+                    chunk.append(line[start]);
+                    start++;
+
+                    if (start == str_len) {
+                        //If the chunk is less than 8 characters (8 bytes), pad it out
+                        if (chunk.length() < 8) {
+                            fix_chunk = true;
+
+                            if (fix_chunk) {
+                                for (int i = 0; i < 4; i++) {
+                                    chunk.append("0");
+                                }
+                                qDebug() << "Chunk: " << chunk;
+                                chunk.clear();
+                            }
+                            fix_chunk = false;
+                        }
+
+                        else if (chunk.length() == 8) {
+                            //The chunk is good
+                            qDebug() << "Chunk: " << chunk;
+                            chunk.clear();
+                        }
+                        break;
+                    }
+                    else if (start == end) {
+                        //Print the chunk when the start pointer equals the end pointer. Then increase the end's pointer if possible.
+                        qDebug() << "Chunk: " << chunk;
+                        end += 8;
+                        chunk.clear();
+                    }
+                }
+            }
+
+            ploot_out.close();
         }
     }
 }
