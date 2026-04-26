@@ -6,6 +6,8 @@
 #include <QTextStream>
 #include <QString>
 #include "base64.hpp"  //Included Base64 library from tobiasbaker: https://github.com/tobiaslocker/base64
+#include <QHash>
+#include <QChar>
 
 //PERMUATATION TABLES
 
@@ -135,7 +137,90 @@ static QVector<int> key_comp = {14, 17, 11, 24, 1, 5,
                          44, 49, 39, 56, 34, 53,
                          46, 42, 50, 36, 29, 32};
 
+//Added functions for DES encryption. Still a work-in-progress.
+QString StartMenu::bin_to_hex(QString string) {
+    QString hex = "";
+    QHash<QString, QChar> binhex_map = {
+        {"0000", '0'},
+        {"0001", '1'},
+        {"0010", '2'},
+        {"0011", '3'},
+        {"0100", '4'},
+        {"0101", '5'},
+        {"0110", '6'},
+        {"0111", '7'},
+        {"1000", '8'},
+        {"1001", '9'},
+        {"1010", 'A'},
+        {"1011", 'B'},
+        {"1100", 'C'},
+        {"1101", 'D'},
+        {"1110", 'E'},
+        {"1111", 'F'}
+    };
+    for (int i=0; i < string.length(); i+=4) {
+        QString ch = "";
+        ch += string[i];
+        ch += string[i+1];
+        ch += string[i+2];
+        ch += string[i+3];
+        hex += binhex_map[ch];
+    }
+    return hex;
+}
 
+QString StartMenu::hex_to_bin(QString string) {
+    QString bin = "";
+    QHash<QChar, QString> hexbin_map = {
+        {'0', "0000"},
+        {'1', "0001"},
+        {'2', "0010"},
+        {'3', "0011"},
+        {'4', "0100"},
+        {'5', "0101"},
+        {'6', "0110"},
+        {'7', "0111"},
+        {'8', "1000"},
+        {'9', "1001"},
+        {'A', "1010"},
+        {'B', "1011"},
+        {'C', "1100"},
+        {'D', "1101"},
+        {'E', "1110"},
+        {'F', "1111"}
+    };
+
+    for (QChar i : string) {
+        bin += hexbin_map[i];
+    }
+    return bin;
+}
+
+QString StartMenu::shift_bit(QString string, int n) {
+    string k = "";
+
+    for (int i = n; i < string.length(); i++) k += s[i];
+    for (int i = 0; i < n; i++) k += s[i];
+    return k;
+}
+
+QString xor_add(QString string1, QString string2) {
+    QString result = "";
+    for (int j=0; j < string1.length(); j++) {
+        if (string1[j] != string2[j]) {
+            result += "1";
+        } else {
+            result += "0";
+        }
+    }
+}
+
+//Unfinished encryption function
+void StartMenu::des_encrypt(QString &encoded_block, QString &key) {
+    qDebug() << "Encoded block: " << encoded_block << " Key: " << key;
+    QString key64 = hex_to_bin(key);
+    qDebug() << "Initial Binary Key: " << key64;
+}
 
 StartMenu::StartMenu(QWidget *parent)
     : QMainWindow(parent)
@@ -158,6 +243,8 @@ void StartMenu::on_pushButton_clicked()
         "",
         "Ploot (*.ploot)"
         );
+
+    QString key = "37490218AFED3456";
     //If the ploot file isn't empty, start encrypting
     if (!ploot_file.isEmpty()) {
         QFile file(ploot_file);
@@ -252,6 +339,7 @@ void StartMenu::on_pushButton_clicked()
                         //Print the chunk when the start pointer equals the end pointer. Then increase the end's pointer if possible.
                         qDebug() << "Chunk: " << chunk;
                         end += 8;
+                        des_encrypt(chunk, key);
                         chunk.clear();
                     }
                 }
