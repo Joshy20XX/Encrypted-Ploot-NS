@@ -197,10 +197,10 @@ QString StartMenu::hex_to_bin(QString string) {
 }
 
 QString StartMenu::shift_bit(QString string, int n) {
-    string k = "";
+    QString k = "";
 
-    for (int i = n; i < string.length(); i++) k += s[i];
-    for (int i = 0; i < n; i++) k += s[i];
+    for (int i = n; i < string.length(); i++) k += string[i];
+    for (int i = 0; i < n; i++) k += string[i];
     return k;
 }
 
@@ -213,6 +213,7 @@ QString xor_add(QString string1, QString string2) {
             result += "0";
         }
     }
+    return result;
 }
 
 //Unfinished encryption function
