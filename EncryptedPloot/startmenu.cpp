@@ -8,6 +8,7 @@
 #include "base64.hpp"  //Included Base64 library from tobiasbaker: https://github.com/tobiaslocker/base64
 #include <QHash>
 #include <QChar>
+#include <QByteArray>
 
 //PERMUATATION TABLES
 
@@ -140,6 +141,8 @@ static QVector<int> key_comp = {14, 17, 11, 24, 1, 5,
 //Added functions for DES encryption. Still a work-in-progress.
 QString StartMenu::bin_to_hex(QString string) {
     QString hex = "";
+
+    //A lookup table for each binary value (4-bits) to its corresponding nybble.
     QHash<QString, QChar> binhex_map = {
         {"0000", '0'},
         {"0001", '1'},
@@ -159,6 +162,8 @@ QString StartMenu::bin_to_hex(QString string) {
         {"1111", 'F'}
     };
     for (int i=0; i < string.length(); i+=4) {
+
+        //Take the bits, assemble it, and then append its corresponding nybble to the hex string.
         QString ch = "";
         ch += string[i];
         ch += string[i+1];
@@ -171,6 +176,8 @@ QString StartMenu::bin_to_hex(QString string) {
 
 QString StartMenu::hex_to_bin(QString string) {
     QString bin = "";
+
+    //A lookup table for the hex to bin conversion
     QHash<QChar, QString> hexbin_map = {
         {'0', "0000"},
         {'1', "0001"},
@@ -190,21 +197,32 @@ QString StartMenu::hex_to_bin(QString string) {
         {'F', "1111"}
     };
 
+    //For each nybble character in the hex string, append binary value to the binary string
     for (QChar i : string) {
         bin += hexbin_map[i];
     }
     return bin;
 }
 
-QString StartMenu::shift_bit(QString string, int n) {
+QString StartMenu::permute(QString &block, QVector<int> &arr, int n) {
+    QString permutation = "";
+    for (int i=0; i < n; i++) {
+        permutation += block[arr[i] - 1];
+    }
+    return permutation;
+}
+
+QString StartMenu::shift_bit_left(QString string, int n) {
     QString k = "";
 
     for (int i = n; i < string.length(); i++) k += string[i];
-    for (int i = 0; i < n; i++) k += string[i];
+    for (int i = 0; i < n; i++) {
+        k += string[i];
+    }
     return k;
 }
 
-QString xor_add(QString string1, QString string2) {
+QString StartMenu::xor_add(QString string1, QString string2) {
     QString result = "";
     for (int j=0; j < string1.length(); j++) {
         if (string1[j] != string2[j]) {
@@ -216,11 +234,42 @@ QString xor_add(QString string1, QString string2) {
     return result;
 }
 
+QString StartMenu::dec_to_bin(int n) {
+    QString bin = "";
+    while (n > 0) {
+        bin = (QChar)(n % 2 + '0') + bin;
+        n /= 2;
+    }
+    while (bin.size() < 4) {
+        bin = '0' + bin;
+    }
+    return bin;
+}
+
+//Convert the text to hex
+QString StartMenu::char_to_hex(QString &text) {
+    auto textdata = text.toStdString();
+    QByteArray data;
+    for (char i : textdata) {
+        data.append(i);
+    }
+    QString hex = data.toHex().toUpper();
+    return hex;
+}
+
 //Unfinished encryption function
-void StartMenu::des_encrypt(QString &encoded_block, QString &key) {
+void StartMenu::des_encrypt(QString &base64_block, QString &key) {
+    QString encoded_block = char_to_hex(base64_block);
+    QString key64 = char_to_hex(key);
     qDebug() << "Encoded block: " << encoded_block << " Key: " << key;
-    QString key64 = hex_to_bin(key);
-    qDebug() << "Initial Binary Key: " << key64;
+    qDebug() << "Initial 64-bit Key (Hex): " << key64;
+    key64 = hex_to_bin(key64);
+    qDebug() << "Initial 64-bit Key (Bin): " << key64;
+
+    encoded_block = hex_to_bin(encoded_block);
+    encoded_block = permute(encoded_block, initial_perm, 64);
+    encoded_block = bin_to_hex(encoded_block);
+    qDebug() << "Initial permutation of block: " << encoded_block;
 }
 
 StartMenu::StartMenu(QWidget *parent)
@@ -245,7 +294,7 @@ void StartMenu::on_pushButton_clicked()
         "Ploot (*.ploot)"
         );
 
-    QString key = "37490218AFED3456";
+    QString key = "34827168"; //The key is 8 digits and later converted to 8 hex values (16 chars)
     //If the ploot file isn't empty, start encrypting
     if (!ploot_file.isEmpty()) {
         QFile file(ploot_file);
@@ -293,7 +342,7 @@ void StartMenu::on_pushButton_clicked()
             ploot_out.close();
 
         }
-        //Open the ploot file again and read each line
+        //Open the ploot file again and get the chunks of each line for encryption
         if (ploot_out.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QTextStream in(&ploot_out);
 

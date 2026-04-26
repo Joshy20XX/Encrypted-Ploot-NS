@@ -33,7 +33,9 @@ private:
     QString bin_to_hex(QString string);
     QString hex_to_bin(QString string);
     QString dec_to_bin(int n);
-    QString shift_bit(QString string, int n);
+    QString shift_bit_left(QString string, int n);
     QString xor_add(QString string1, QString string2);
+    QString permute(QString &key, QVector<int> &arr, int n);
+    QString char_to_hex(QString &encoded_block);
 };
 #endif // STARTMENU_H
