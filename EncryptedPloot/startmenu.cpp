@@ -9,6 +9,7 @@
 #include <QHash>
 #include <QChar>
 #include <QByteArray>
+#include <QStringList>
 
 //PERMUATATION TABLES
 
@@ -112,7 +113,7 @@ static QVector<int> final_perm = {40, 8, 48, 16, 56, 24, 64, 32,
                            34, 2, 42, 10, 50, 18, 58, 26,
                            33, 1, 41, 9, 49, 17, 57, 25};
 
-//Parity bit drop table
+//Parity bit drop table a.k.a. Permuted Choice 1 (PC-1)
 static QVector<int> keyp = {57, 49, 41, 33, 25, 17, 9,
                      1, 58, 50, 42, 34, 26, 18,
                      10, 2, 59, 51, 43, 35, 27,
@@ -212,7 +213,7 @@ QString StartMenu::permute(QString &block, QVector<int> &arr, int n) {
     return permutation;
 }
 
-QString StartMenu::shift_bit_left(QString string, int n) {
+QString StartMenu::shift_bit_left(QString &string, int n) {
     QString k = "";
 
     for (int i = n; i < string.length(); i++) k += string[i];
@@ -222,7 +223,7 @@ QString StartMenu::shift_bit_left(QString string, int n) {
     return k;
 }
 
-QString StartMenu::xor_add(QString string1, QString string2) {
+QString StartMenu::xor_add(QString &string1, QString &string2) {
     QString result = "";
     for (int j=0; j < string1.length(); j++) {
         if (string1[j] != string2[j]) {
@@ -246,6 +247,12 @@ QString StartMenu::dec_to_bin(int n) {
     return bin;
 }
 
+int StartMenu::bin_to_dec(int bin) {
+    //QString binary = bin;
+    int decimal = 0, i = 0, n = 0;
+    return decimal;
+}
+
 //Convert the text to hex
 QString StartMenu::char_to_hex(QString &text) {
     auto textdata = text.toStdString();
@@ -259,6 +266,12 @@ QString StartMenu::char_to_hex(QString &text) {
 
 //Unfinished encryption function
 void StartMenu::des_encrypt(QString &base64_block, QString &key) {
+    //Store the round key for later
+    QStringList roundkeylist_bin = {};
+    QStringList roundkeylist = {};
+
+    //Convert the base64 block and key to hex.
+    //It's required for the encryption to work.
     QString encoded_block = char_to_hex(base64_block);
     QString key64 = char_to_hex(key);
     qDebug() << "Encoded block: " << encoded_block << " Key: " << key;
@@ -268,8 +281,57 @@ void StartMenu::des_encrypt(QString &base64_block, QString &key) {
 
     encoded_block = hex_to_bin(encoded_block);
     encoded_block = permute(encoded_block, initial_perm, 64);
-    encoded_block = bin_to_hex(encoded_block);
-    qDebug() << "Initial permutation of block: " << encoded_block;
+    qDebug() << "Initial permutation of block: " << bin_to_hex(encoded_block);
+
+    //Truncate the 64-bit key into 56-bits
+    QString key56 = "";
+    key56 = permute(key64, keyp, 56);
+
+    //Get the left and right bits
+    QString key_left = "", key_right = "";
+    for (int i = 0; i < 28; i++) {
+        key_left += key56[i];
+    }
+
+    for (int j=28; j < 56; j++) {
+        key_right += key56[j];
+    }
+    qDebug() << "PC-1 key: " << key56 << "\nKey Left: " << key_left << "\nKey Right: " << key_right;
+
+    //Shift the left and right halves of the key
+    for (int i=0; i < 16; i++) {
+        key_left = shift_bit_left(key_left, shift_table[i]);
+        key_right = shift_bit_left(key_right, shift_table[i]);
+        //qDebug() << "shifted left:" << key_left << "shifted right:" << key_right;
+
+        QString key56_combined = "";
+        QString roundkey = "";
+
+        //Combine the two halves into a 56-bit key and truncate to a 48-bit key
+        key56_combined = key_left + key_right;
+        roundkey = permute(key56_combined, key_comp, 48);
+
+        qDebug() << "Round key:" << roundkey;
+        roundkeylist.append(roundkey);
+        roundkeylist_bin.append(bin_to_hex(roundkey));
+    }
+
+    //Split the text
+    QString blockleft = encoded_block.sliced(0,32);
+    QString blockright = encoded_block.sliced(32, 32);
+    qDebug() << "Block left:" << blockleft << "Block right:" << blockright;
+
+    //Where the actual encryption happens
+    for (int i=0; i < 16; i++) {
+        //Use the Expansion D-box to expand the bits from 32 to 48 bits
+        QString right_expanded = permute(blockright, exp_d, 48);
+
+        //XOR current round key and expanded right
+        QString xor_op = xor_add(right_expanded, roundkeylist_bin[i]);
+
+        //Using S-box table for calculating row and column
+        QString sbox_str = "";
+    }
 }
 
 StartMenu::StartMenu(QWidget *parent)
