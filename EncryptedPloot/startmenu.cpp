@@ -10,6 +10,7 @@
 #include <QChar>
 #include <QByteArray>
 #include <QStringList>
+#include <QtMath>
 
 //PERMUATATION TABLES
 
@@ -225,6 +226,7 @@ QString StartMenu::shift_bit_left(QString &string, int n) {
 
 QString StartMenu::xor_add(QString &string1, QString &string2) {
     QString result = "";
+    qDebug() << "Comparing:\n" << string1 << "\n" << string2;
     for (int j=0; j < string1.length(); j++) {
         if (string1[j] != string2[j]) {
             result += "1";
@@ -246,10 +248,14 @@ QString StartMenu::dec_to_bin(int n) {
     }
     return bin;
 }
+int StartMenu::bin_to_dec(QString &string) {
+    int decimal = 0, i = 0;
 
-int StartMenu::bin_to_dec(int bin) {
-    //QString binary = bin;
-    int decimal = 0, i = 0, n = 0;
+    for (QChar i : string) {
+        decimal = (decimal << 1 | (i == '1'));
+    }
+    //qDebug() << "Decimal:" << decimal;
+
     return decimal;
 }
 
@@ -265,7 +271,7 @@ QString StartMenu::char_to_hex(QString &text) {
 }
 
 //Unfinished encryption function
-void StartMenu::des_encrypt(QString &base64_block, QString &key) {
+QString StartMenu::des_encrypt(QString &base64_block, QString &key) {
     //Store the round key for later
     QStringList roundkeylist_bin = {};
     QStringList roundkeylist = {};
@@ -296,13 +302,12 @@ void StartMenu::des_encrypt(QString &base64_block, QString &key) {
     for (int j=28; j < 56; j++) {
         key_right += key56[j];
     }
-    qDebug() << "PC-1 key: " << key56 << "\nKey Left: " << key_left << "\nKey Right: " << key_right;
+    qDebug() << "PC-1 key: " << key56 << "\nKey Left: " << key_left << "\nKey Right: " << key_right << "\n";
 
     //Shift the left and right halves of the key
     for (int i=0; i < 16; i++) {
         key_left = shift_bit_left(key_left, shift_table[i]);
         key_right = shift_bit_left(key_right, shift_table[i]);
-        //qDebug() << "shifted left:" << key_left << "shifted right:" << key_right;
 
         QString key56_combined = "";
         QString roundkey = "";
@@ -311,10 +316,14 @@ void StartMenu::des_encrypt(QString &base64_block, QString &key) {
         key56_combined = key_left + key_right;
         roundkey = permute(key56_combined, key_comp, 48);
 
-        qDebug() << "Round key:" << roundkey;
+        //qDebug() << "Round key:" << i + 1 << roundkey;
+        roundkeylist_bin.append(roundkey);
+
+        roundkey = bin_to_hex(roundkey);
         roundkeylist.append(roundkey);
-        roundkeylist_bin.append(bin_to_hex(roundkey));
     }
+
+    qDebug() << "Round key list:" << roundkeylist << "\nRound key list (bin):" << roundkeylist_bin << "\n";
 
     //Split the text
     QString blockleft = encoded_block.sliced(0,32);
@@ -325,13 +334,51 @@ void StartMenu::des_encrypt(QString &base64_block, QString &key) {
     for (int i=0; i < 16; i++) {
         //Use the Expansion D-box to expand the bits from 32 to 48 bits
         QString right_expanded = permute(blockright, exp_d, 48);
+        qDebug() << "Expanded right D-box:" << right_expanded;
 
         //XOR current round key and expanded right
         QString xor_op = xor_add(right_expanded, roundkeylist_bin[i]);
 
+        qDebug() << "XOR result:" << xor_op;
+
         //Using S-box table for calculating row and column
         QString sbox_str = "";
+
+        for (int j = 0; j < 8; j++) {
+            QString chunk = xor_op.mid(j * 6,6);
+            QString rowbits = QString(chunk[0]) + chunk[5];
+            QString colbits = chunk.mid(1,4);
+
+            int row = bin_to_dec(rowbits);
+            int col = bin_to_dec(colbits);
+
+            int value = sbox[j][row][col];
+            //qDebug() << "Row:" << row << "Col:" << col << "Value:" << value;
+            sbox_str = sbox_str + dec_to_bin(value);
+        }
+
+        //Now permute with the straight permutation table
+        sbox_str = permute(sbox_str, per, 32);
+
+        //XOR left and sbox_str
+        QString result = xor_add(blockleft, sbox_str);
+        blockleft = result;
+
+        if (i != 15) {
+            QString temp = blockleft;
+            blockleft = blockright;
+            blockright = temp;
+        }
+
+        qDebug() << "Round" << i + 1 << bin_to_hex(blockleft) << bin_to_hex(blockright) << roundkeylist[i];
     }
+    qDebug() << "\n";
+    QString combine = blockleft + blockright;
+
+    //Now for the final permutation
+    QString ciphertext = permute(combine, final_perm, 64);
+    qDebug() << "Ciphered chunk (Hex):" << bin_to_hex(ciphertext) << "(Bin):" << ciphertext << "\n";
+    return ciphertext;
 }
 
 StartMenu::StartMenu(QWidget *parent)
@@ -432,9 +479,10 @@ void StartMenu::on_pushButton_clicked()
 
                             if (fix_chunk) {
                                 for (int i = 0; i < 4; i++) {
-                                    chunk.append("0");
+                                    chunk.append("$");
                                 }
                                 qDebug() << "Chunk: " << chunk;
+                                des_encrypt(chunk, key);
                                 chunk.clear();
                             }
                             fix_chunk = false;
@@ -443,6 +491,7 @@ void StartMenu::on_pushButton_clicked()
                         else if (chunk.length() == 8) {
                             //The chunk is good
                             qDebug() << "Chunk: " << chunk;
+                            des_encrypt(chunk, key);
                             chunk.clear();
                         }
                         break;
