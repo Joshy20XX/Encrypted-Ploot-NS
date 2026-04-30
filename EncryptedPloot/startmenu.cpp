@@ -314,7 +314,6 @@ void StartMenu::keygen(QString& key, QStringList &roundkeylist, QStringList &rou
 QString StartMenu::des_encrypt(QString &chunk_block, QStringList &roundkeylist, QStringList &roundkeylist_bin) {
     //Convert the base64 block and key to hex.
     //It's required for the encryption to work.
-    qDebug() << "Encoded block: " << chunk_block;
     QString encoded_block = "";
 
     if (chunk_block.length() == 16) {
@@ -322,7 +321,10 @@ QString StartMenu::des_encrypt(QString &chunk_block, QStringList &roundkeylist, 
     } else {
         QByteArray chunkhex = chunk_block.toUtf8().toHex().toUpper();
         encoded_block = chunkhex;
+        qDebug() << "Encoded block (hex):" << encoded_block;
     }
+    //QByteArray encoded_hex = encoded.toUtf8().toHex().toUpper();
+    //qDebug() << "Encoded block: " << chunk_block; << "Hex:" << enc
 
     encoded_block = hex_to_bin(encoded_block);
     encoded_block = permute(encoded_block, initial_perm, 64);
@@ -455,7 +457,7 @@ QString StartMenu::des_decrypt(QString &encrypted_block, QStringList &roundkeyli
 }
 
 void StartMenu::TDES(QFile &ploot_out_file) {
-    //keys are 8 digits and later converted to 8 hex values (16 chars)
+    //keys are 8 digits and later converted to 64 bits
     QString key1 = "34827168"; //key 1 encryption step 1
     QString key2 = "43712987"; //key 2 decryption step 2
     QString key3 = "58901264"; //key 3 encryption step 3
@@ -475,9 +477,10 @@ void StartMenu::TDES(QFile &ploot_out_file) {
     keygen(key2, roundkeylist2, roundkeylist2_bin);
     keygen(key3, roundkeylist3, roundkeylist3_bin);
 
-    step++;
+    step++; //3DES E->D->E encryption with forward round keys
 
     if (step == 1) {
+        //Read the file and start chunking
         if (ploot_out_file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QTextStream in(&ploot_out_file);
 
@@ -542,11 +545,9 @@ void StartMenu::TDES(QFile &ploot_out_file) {
     if (step == 2) {
         //Reverse the round keys for the decryption
         //Pass in key 2 for the decryption
-        std::reverse(roundkeylist2.begin(), roundkeylist2.end());
-        std::reverse(roundkeylist2_bin.begin(), roundkeylist2_bin.end());
 
         for (int i = 0; i < cipher_blocks.length(); i++) {
-            ci_chunk = des_decrypt(cipher_blocks[i], roundkeylist, roundkeylist_bin);
+            ci_chunk = des_decrypt(cipher_blocks[i], roundkeylist2, roundkeylist2_bin);
             cipher_blocks[i] = ci_chunk;
         }
         qDebug() << "Step" << step << "complete! Deciphered blocks list:\n" << cipher_blocks;
@@ -567,6 +568,57 @@ void StartMenu::TDES(QFile &ploot_out_file) {
         qDebug() << "Step" << step << "complete! Ciphered blocks list:\n" << cipher_blocks << "\nEncryption complete! Results are in the output file.";
         for (QString block : cipher_blocks) {
             qDebug() << "Encrypted block:" << block;
+        }
+        step++;
+    }
+
+    //3DES D->E->D decryption with reversed round keys
+    if (step == 4) {
+        //Reverse the round keys for the decryption
+        //Pass in key 3 for the encryption
+        //qDebug() << "Checking for blocks list:\n" << cipher_blocks;
+        std::reverse(roundkeylist3.begin(), roundkeylist3.end());
+        std::reverse(roundkeylist3_bin.begin(), roundkeylist3_bin.end());
+        for (int i = 0; i < cipher_blocks.length(); i++) {
+            ci_chunk = des_decrypt(cipher_blocks[i], roundkeylist3, roundkeylist3_bin);
+            cipher_blocks[i] = ci_chunk;
+        }
+        qDebug() << "Step" << step << "complete! Deciphered blocks list:\n" << cipher_blocks;
+        for (QString block : cipher_blocks) {
+            qDebug() << "Encrypted block:" << block;
+        }
+        step++;
+    }
+    if (step == 5) {
+        //Reverse the round keys for the decryption
+        //Pass in key 3 for the encryption
+        //qDebug() << "Checking for blocks list:\n" << cipher_blocks;
+        std::reverse(roundkeylist2.begin(), roundkeylist2.end());
+        std::reverse(roundkeylist2_bin.begin(), roundkeylist2_bin.end());
+
+        for (int i = 0; i < cipher_blocks.length(); i++) {
+            ci_chunk = des_encrypt(cipher_blocks[i], roundkeylist2, roundkeylist2_bin);
+            cipher_blocks[i] = ci_chunk;
+        }
+        qDebug() << "Step" << step << "complete! Ciphered blocks list:\n" << cipher_blocks;
+        for (QString block : cipher_blocks) {
+            qDebug() << "Encrypted block:" << block;
+        }
+        step++;
+    }
+    if (step == 6) {
+        //Reverse the round keys for the decryption
+        //Pass in key 3 for the encryption
+        //qDebug() << "Checking for blocks list:\n" << cipher_blocks;
+        std::reverse(roundkeylist.begin(), roundkeylist.end());
+        std::reverse(roundkeylist_bin.begin(), roundkeylist_bin.end());
+        for (int i = 0; i < cipher_blocks.length(); i++) {
+            ci_chunk = des_decrypt(cipher_blocks[i], roundkeylist, roundkeylist_bin);
+            cipher_blocks[i] = ci_chunk;
+        }
+        qDebug() << "Step" << step << "complete! Deciphered blocks list:\n" << cipher_blocks << "\nDecryption complete! Results are in the output file.";
+        for (QString block : cipher_blocks) {
+            qDebug() << "Decrypted block:" << block;
         }
         step++;
     }

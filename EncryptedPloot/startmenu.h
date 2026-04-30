@@ -38,7 +38,6 @@ private:
     QString shift_bit_left(QString &string, int n);
     QString xor_add(QString &string1, QString &string2);
     QString permute(QString &key, QVector<int> &arr, int n);
-    QString char_to_hex(QString &text);
     QString hex_to_char(QString &string);
     void keygen(QString& key, QStringList &roundkeylist, QStringList &roundkeylist_bin);
     void TDES(QFile &ploot_out_file);
